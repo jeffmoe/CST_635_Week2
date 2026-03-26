@@ -1,9 +1,13 @@
+"""
+Allows for inserting data from a csv file to a Postgres database.
+"""
+
+
 from future import annotations
-import numpy as np
 import pandas as pd
 import os
 import Faker
-import psycopg2 as pg
+import psycopg as pg
 import logging
 from dataclasses import dataclass, field
 
@@ -20,6 +24,7 @@ class PostgresExamples:
     db_name: str = "testdb"
     conn: None = None
     df_data: pd.DataFrame = field(default_factory=pd.DataFrame)
+    read_data: pd.DataFrame = field(default_factory=pd.DataFrame)
 
     def get_envs(self) -> str:
         self.password = os.getenv("POSTGRES_PASSWORD")
@@ -30,7 +35,7 @@ class PostgresExamples:
     def connect_to_db(self):
         self.username, self.password = self.get_envs()
         try:
-            self.conn = psycopg2.connect(
+            self.conn = pg.connect(
                 host=self.db_host,
                 database=self.db_name,
                 user=self.username,
@@ -41,7 +46,7 @@ class PostgresExamples:
             db_version = cur.fetchone()
             logging.info("Connected to Postgres database version: %s", db_version)
             cur.close()
-        except (Exception, psycopg2.DatabaseError) as e:
+        except (Exception, pg.DatabaseError) as e:
             logging.error(f"Error connecting to the database: {e}")
             self.conn = None
         finally:
@@ -79,7 +84,8 @@ class PostgresExamples:
         result = os.path.join(filepath, filename)
         self.df_data = pd.DataFrame(data)
         self.df_data.to_csv(result, index=False)
-        return self.df_data
+        self.read_data = pd.read_csv(result)
+        return self.read_data
 
     def create_table(self):
         try:
@@ -96,7 +102,7 @@ class PostgresExamples:
                 )
                 self.conn.commit()
                 logging.info("Data successfully inserted into testtable.")
-        except (Exception, psycopg2.DatabaseError) as e:
+        except (Exception, pg.DatabaseError) as e:
             logging.error(f"Error inserting data: {e}")
 
     def pull_data(self):
@@ -108,7 +114,7 @@ class PostgresExamples:
                 rows_df = pd.DataFrame(rows, columns=['last_name', 'first_name', 'gender', 'address'])
                 print(rows_df.info())
                 print(rows_df.describe())
-        except (Exception, psycopg2.DatabaseError) as e:
+        except (Exception, pg.DatabaseError) as e:
             logging.error(f"Error retrieving data: {e}")
 
     def change_data_test(self):
@@ -131,7 +137,7 @@ class PostgresExamples:
                 states_df = pd.DataFrame(states, columns=['state'])
                 print(states_df)
 
-        except (Exception, psycopg2.DatabaseError) as e:
+        except (Exception, pg.DatabaseError) as e:
             logging.error(f"Error retrieving data: {e}")
 
 
